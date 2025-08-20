@@ -1,0 +1,7 @@
+streamlit>=1.36
+SQLAlchemy>=2.0
+pandas>=2.2
+pillow>=10.0
+qrcode[pil]>=7.4
+# 仅在你使用 PostgreSQL 时需要下一行；只用 SQLite 可以删掉
+psycopg2-binary==2.9.9
