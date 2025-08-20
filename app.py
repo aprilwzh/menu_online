@@ -133,7 +133,7 @@ def ensure_cart():
 def cart_total(db) -> float:
     total = 0.0
     for mid, qty in st.session_state.cart.items():
-        item = db.query(MenuItem).get(mid)
+        item = db.get(MenuItem, mid)
         if item and item.is_available:
             total += item.price * qty
     return total
@@ -168,7 +168,11 @@ def page_order():
 
     # 分类列表
     categories = [c[0] for c in db.query(MenuItem.category).distinct().all()]
-    selected_cat = st.segmented_control("分类", options=["全部"] + categories, selection_mode="single")
+    # segmented_control 新版可用；旧版回退为 selectbox
+    if hasattr(st, "segmented_control"):
+        selected_cat = st.segmented_control("分类", options=["全部"] + categories, selection_mode="single")
+    else:
+        selected_cat = st.selectbox("分类", ["全部"] + categories)
 
     # 菜品卡片 + 搜索 + 布局模式
     search_kw = st.text_input("搜索菜名/描述", placeholder="例如：牛肉、咖啡")
@@ -195,7 +199,7 @@ def page_order():
     if use_list:
         # 竖向列表（更适配手机）
         for m in items:
-            with st.container(border=True):
+            with st.container():
                 if m.image_url:
                     st.image(m.image_url, use_container_width=True)
                 st.subheader(m.name)
@@ -220,7 +224,7 @@ def page_order():
         cols = st.columns(3)
         for i, m in enumerate(items):
             with cols[i % 3]:
-                with st.container(border=True):
+                with st.container():
                     if m.image_url:
                         st.image(m.image_url, use_container_width=True)
                     st.subheader(m.name)
@@ -242,7 +246,7 @@ def page_order():
     st.subheader("🛒 购物车")
     cart_rows = []
     for mid, qty in st.session_state.cart.items():
-        item = db.query(MenuItem).get(mid)
+        item = db.get(MenuItem, mid)
         if not item:
             continue
         cart_rows.append({
@@ -284,7 +288,7 @@ def page_order():
                     status="NEW",
                     total_price=0.0,
                     channel="onsite",
-                    source_ip=st.context.headers.get("X-Forwarded-For", "") if hasattr(st, "context") else "",
+                    source_ip=os.environ.get("X_FORWARDED_FOR", "") or os.environ.get("REMOTE_ADDR", ""),
                     created_at=datetime.now(TZ),
                     updated_at=datetime.now(TZ),
                 )
@@ -293,7 +297,7 @@ def page_order():
 
                 total = 0.0
                 for mid, qty in st.session_state.cart.items():
-                    item = db.query(MenuItem).get(mid)
+                    item = db.get(MenuItem, mid)
                     if not item:
                         continue
                     total += item.price * qty
